@@ -1,7 +1,7 @@
 
-# Cube2D Game Framework
+# Frax Framework
 
-Cube2D, a header only 2D easy-to-use game framework for making video games with raylib even easier written in C++11. 
+Frax, a header only 2D easy-to-use game framework for making video games with raylib even easier written in C++11. 
 
 
 ## Features
@@ -21,25 +21,8 @@ Cube2D, a header only 2D easy-to-use game framework for making video games with 
 
 ## Installation & Configuration
 
-```bash
-git clone https://github.com/mastercuber55/Cube2D-Game-Framework.git
-```
-
-### Default
-
-In just a SINGLE file `#define CGE_IMPL` before `#include <Cube2D.hpp>`
-
-### Static Linking
-
-Create a file named `Cube2D.cpp` with contents of `Cube2D.hpp` in it and run the following.
-
-```bash
-g++ -o Cube2D.o -c Cube2D.cpp -D CGE_IMPL -I"C:/raylib/include" && ar rcs libCube2D.a -o Cube2D.o
-```
-
-and link to it using `-lCube2D`
-
-
+For sake of simplicity, just drop the Frax.hpp into your project.\
+In just a SINGLE file `#define FRAX_IMPL` before `#include <Frax.hpp>`
 
 
 ## Documentation

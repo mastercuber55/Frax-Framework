@@ -1,15 +1,14 @@
 /********************************************************************************************************************************************************
 *
-*   Cube2D Game Framework v1.2 - A simple and easy-to-use game emgine.
+*   Frax Framework v2.0 - A simple and easy-to-use game emgine.
 *
 *   FEATURES:
 *       - NO forced external dependencies, expect raylib.
 *       - Multiplatform: My guess is that its just as good as raylib.
-*       - Written in plain C code (C99) in PascalCase notation.
 *
 *   NOTES:
-*		- In just a SINGLE file before including #define CGE_IMPLEMENTATION
-*		- Macros are prefixed with CGE
+*		- In just a SINGLE file before including #define FRAX_IML
+*		- Macros are prefixed with FRAX
 * 		
 *   DEPENDENCIES:
 *       [raylib] for almost everything. 
@@ -21,7 +20,7 @@
 *
 * 	MIT License
 *
-* 	Copyright (c) 2023 Cube Nerd (@mastercuber55)
+* 	Copyright (c) 2025 Cube Nerd (@mastercuber55)
 * 
 * 	Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation 
 * 	files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, 
@@ -37,34 +36,30 @@
 * 
 ********************************************************************************************************************************************************/
 
-#ifndef CUBE2D_FRAMEWORK
-#define CUBE2D_FRAMEWORK "1.2"
+#ifndef FRAX_FRAMEWORK
+#define FRAX_FRAMEWORK "2.0"
 
-#ifndef CGE_WHOLE_FILE
-#	define CGE_WHOLE_FILE { 0, 0, -1, -1 }
-#endif // CGE_WHOLE_FILE
-
-#ifndef CGE_SCENE_DEFAULT_BACKGROUND_COLOR
-#	define CGE_SCENE_DEFAULT_BACKGROUND_COLOR BLACK
+#ifndef FRAX_SCENE_DEFAULT_BACKGROUND_COLOR
+#	define FRAX_SCENE_DEFAULT_BACKGROUND_COLOR BLACK
 #endif
 
-#ifndef CGE_DEFAULT_FPS
-#	define CGE_DEFAULT_FPS 60
+#ifndef FRAX_DEFAULT_FPS
+#	define FRAX_DEFAULT_FPS 60
 #endif
 
 #include <raylib.h>
 
-#ifdef CGE_RAYGUI
-#	ifdef CGE_IMPL
+#ifdef FRAX_RAYGUI
+#	ifdef FRAX_IMPL
 #		define RAYGUI_IMPLEMENTATION
 #	endif
 #	include <raygui.h>
 #	include <functional>
-#endif // CGE_RAYGUI
+#endif // FRAX_RAYGUI
 
 #include <string>
 
-namespace Engine {
+namespace Frax {
  
 //----------------------------------------------------------------------------------
 // Structures Definitions (Module: Structures)
@@ -77,7 +72,7 @@ struct Scene {
 	bool KeepRunning;
 	int CodeToReturn;
 
-	Scene(Color BackgroundColor = CGE_SCENE_DEFAULT_BACKGROUND_COLOR);
+	Scene(Color BackgroundColor = FRAX_SCENE_DEFAULT_BACKGROUND_COLOR);
 	virtual bool ShouldClose();
 	virtual int Run();
 	virtual void Close(int CodeToReturn = 0);
@@ -104,7 +99,7 @@ struct Rect {
 	Rect(										
 		Rectangle Destination, 
 		std::string TextureFile, 
-		Rectangle Source = CGE_WHOLE_FILE
+		Rectangle Source = { 0, 0, -1, -1 }
 	);
 	~Rect();
 
@@ -126,7 +121,7 @@ struct Rect {
 
 };
 
-#ifdef CGE_RAYGUI
+#ifdef FRAX_RAYGUI
 struct GuiWindow {
 
 	bool Hidden;
@@ -141,7 +136,7 @@ struct GuiWindow {
 	
 	private: bool Drag;
 };
-#endif // CGE_RAYGUI
+#endif // FRAX_RAYGUI
 
 //------------------------------------------------------------------------------------
 // Initialization And Closing Functions (Module: Core)
@@ -159,14 +154,14 @@ bool AreColorSame(Color A, Color B);
 Vector2 GetRandomPosition(Camera2D Cam);
 
 }
-#endif // CUBE2D_FRAMEWORK
+#endif // FRAX_FRAMEWORK
 //------------------------------------------------------------------------------------
-// CGE Implementation (Module: Implementation)
-// No need to go any further you know.
+// FRAX Implementation (Module: Implementation)
+// No need to go any further, you know.
 //------------------------------------------------------------------------------------
 
-#ifdef CGE_IMPL
-#undef CGE_IMPL
+#ifdef FRAX_IMPL
+#undef FRAX_IMPL
 
 #include <unordered_map>
 #include <algorithm>
@@ -175,7 +170,7 @@ Vector2 GetRandomPosition(Camera2D Cam);
 // Variables (Module: Variables)
 //------------------------------------------------------------------------------------
 
-namespace Engine {
+namespace Frax {
 
 std::unordered_map<std::string, Texture> Textures;
 
@@ -221,7 +216,7 @@ Rect::Rect(float x, float y, float w, float h) {
 	this->x = x, this->y = y;
 	this->w = w, this->h = h;
 	this->Tint = WHITE;
-	this->Source = CGE_WHOLE_FILE,
+	this->Source = { 0, 0, -1, -1 },
 	this->Rotation = 0.0;
 }
 
@@ -258,8 +253,8 @@ void Rect::Draw() {
 		DrawTexturePro(
 			Textures[this->TextureFile], 
 			this->Source, 
-			(Rectangle){ this->x + this->w / 2.0f, this->y + this->h / 2.0f, this->w, this->h }, 
-			(Vector2){ this->w / 2.0f, this->h / 2.0f }, 
+			Rectangle{ this->x + this->w / 2.0f, this->y + this->h / 2.0f, this->w, this->h }, 
+			Vector2{ this->w / 2.0f, this->h / 2.0f }, 
 			this->Rotation, 
 			this->Tint
 		);
@@ -323,17 +318,17 @@ void GuiWindow::Draw(std::function<void(Vector2 Offset)> Function) {
 	
 	Function({ this->x, this->y + 20.0f });
 }
-#endif
+#endif // RAYGUI_H
 
 void Init(int WindowWidth, int WindowHeight, std::string Title) {
 
-	TraceLog(LOG_INFO, "Initializing Cube2D %s", CUBE2D_FRAMEWORK); 
+	TraceLog(LOG_INFO, "Initializing Frax %s", FRAX_FRAMEWORK); 
 
 	InitWindow(WindowWidth, WindowHeight, Title.c_str());
 	InitAudioDevice();				
 
 	SetExitKey(KEY_NULL);							
-	SetTargetFPS(CGE_DEFAULT_FPS);					
+	SetTargetFPS(FRAX_DEFAULT_FPS);					
 }
 void Close() {
 
@@ -341,7 +336,7 @@ void Close() {
 	CloseAudioDevice();
 	CloseWindow();
 
-	TraceLog(LOG_INFO, "Cube2D closed successfully");
+	TraceLog(LOG_INFO, "Frax closed successfully");
 }
 
 //------------------------------------------------------------------------------------
@@ -367,4 +362,4 @@ Vector2 GetRandomPosition(Camera2D Cam) {
 
 }
 
-#endif // CGE_IMPLEMENTATION
+#endif // FRAX_IMPL
