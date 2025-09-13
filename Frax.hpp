@@ -104,14 +104,11 @@ struct Rect {
 	~Rect();
 
 	// Setters
-	void SetPosition(Vector2 NewPosition);
 	void operator=(Vector2 NewPosition);
 	void SetTextureFile(std::string TextureFile); 
 
 	// Getters
-	Vector2 GetCenter();	
-	Vector2 GetPosition();
-	Vector2 GetRectangle();						
+	Vector2 GetCenter();						
 	operator Vector2() const;						
 	operator Rectangle() const;						
 
@@ -262,20 +259,11 @@ void Rect::Draw() {
 bool Rect::IsColliding(Rect * Other) {
 	return CheckCollisionRecs(*this, *Other);
 }
-void Rect::SetPosition(Vector2 Position) {
-	this->x = Position.x, this->y = Position.y;
-}
 void Rect::operator=(Vector2 NewPosition) {
 	this->SetPosition(NewPosition);
 }
 Vector2 Rect::GetCenter() {
 	return {this->x + this->w / 2.0f, this->y + this->h / 2.0f};
-}
-Vector2 Rect::GetPosition() {
-	return *this;
-}
-Vector2 Rect::GetRectangle() {
-	return *this;
 }
 Rect::operator Vector2() const {
 	return { this->x, this->y };
