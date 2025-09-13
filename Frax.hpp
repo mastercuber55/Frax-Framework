@@ -59,6 +59,7 @@
 
 #include <string>
 
+
 namespace Frax {
 
 extern Vector2 ScreenSize;	
@@ -67,9 +68,8 @@ extern Vector2 ScreenSize;
 // Structures Definitions (Module: Structures)
 //----------------------------------------------------------------------------------
 
-// Scene, Used for scene management.
 struct Scene {
-
+	
 	Color BackgroundColor;
 	bool KeepRunning;
 	int CodeToReturn;
