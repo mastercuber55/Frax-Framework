@@ -60,7 +60,9 @@
 #include <string>
 
 namespace Frax {
- 
+
+extern Vector2 ScreenSize;	
+
 //----------------------------------------------------------------------------------
 // Structures Definitions (Module: Structures)
 //----------------------------------------------------------------------------------
@@ -139,7 +141,7 @@ struct GuiWindow {
 // Initialization And Closing Functions (Module: Core)
 //------------------------------------------------------------------------------------
 //
-void Init(int WindowWidth, int WindowHeight, std::string WindowTitle);
+void Init(std::string WindowTitle, Vector2 ScrnSize = {0, 0});
 void Close();
  
 //------------------------------------------------------------------------------------
@@ -169,7 +171,8 @@ Vector2 GetRandomPosition(Camera2D Cam);
 
 namespace Frax {
 
-std::unordered_map<std::string, Texture> Textures;
+Vector2 ScreenSize;
+std::unordered_map<std::string, Texture> Textures; // OwO what is this so private data
 
 //----------------------------------------------------------------------------------
 // Structures Definitions (Module: Structures)
@@ -260,7 +263,8 @@ bool Rect::IsColliding(Rect * Other) {
 	return CheckCollisionRecs(*this, *Other);
 }
 void Rect::operator=(Vector2 NewPosition) {
-	this->SetPosition(NewPosition);
+	this->x = NewPosition.x;
+	this->y = NewPosition.y;
 }
 Vector2 Rect::GetCenter() {
 	return {this->x + this->w / 2.0f, this->y + this->h / 2.0f};
@@ -308,12 +312,21 @@ void GuiWindow::Draw(std::function<void(Vector2 Offset)> Function) {
 }
 #endif // RAYGUI_H
 
-void Init(int WindowWidth, int WindowHeight, std::string Title) {
+void Init(std::string Title, Vector2 ScrnSize) {
 
 	TraceLog(LOG_INFO, "Initializing Frax %s", FRAX_FRAMEWORK); 
 
-	InitWindow(WindowWidth, WindowHeight, Title.c_str());
+	InitWindow(ScrnSize.x, ScrnSize.y, Title.c_str());
 	InitAudioDevice();				
+
+	if(ScrnSize.x == 0 && ScrnSize.y == 0) {
+
+		int monitor = GetCurrentMonitor();
+		ScrnSize.x = GetMonitorWidth(monitor);
+		ScrnSize.y = GetMonitorHeight(monitor);
+	}
+	
+	ScreenSize = ScrnSize;
 
 	SetExitKey(KEY_NULL);							
 	SetTargetFPS(FRAX_DEFAULT_FPS);					
