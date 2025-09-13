@@ -316,14 +316,16 @@ void Init(std::string Title, Vector2 ScrnSize) {
 
 	TraceLog(LOG_INFO, "Initializing Frax %s", FRAX_FRAMEWORK); 
 
+	// Convinently, raylib allows passing 0, 0 to get maximum screen size possible on current monitor.
+
 	InitWindow(ScrnSize.x, ScrnSize.y, Title.c_str());
 	InitAudioDevice();				
 
 	if(ScrnSize.x == 0 && ScrnSize.y == 0) {
 
-		int monitor = GetCurrentMonitor();
-		ScrnSize.x = GetMonitorWidth(monitor);
-		ScrnSize.y = GetMonitorHeight(monitor);
+		// Changed from GetMonitor...() to add android compability
+		ScrnSize.x = GetScreenWidth();
+		ScrnSize.y = GetScreenHeight();
 	}
 	
 	ScreenSize = ScrnSize;
