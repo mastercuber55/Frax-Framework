@@ -106,7 +106,8 @@ struct Rect {
 	~Rect();
 
 	// Setters
-	void operator=(Vector2 NewPosition);
+	void SetCenter(Vector2 NewCenter);
+	void operator=(Vector2 NewPos);
 	void SetTextureFile(std::string TextureFile); 
 
 	// Getters
@@ -115,7 +116,6 @@ struct Rect {
 	operator Rectangle() const;						
 
 	// Utilities
-	bool IsColliding(Rect * Other);
 	void Draw();									
 
 };
@@ -253,18 +253,20 @@ void Rect::Draw() {
 		DrawTexturePro(
 			Textures[this->TextureFile], 
 			this->Source, 
-			Rectangle{ this->x + this->w / 2.0f, this->y + this->h / 2.0f, this->w, this->h }, 
+			Rectangle{ this->x, this->y, this->w, this->h }, 
 			Vector2{ this->w / 2.0f, this->h / 2.0f }, 
 			this->Rotation, 
 			this->Tint
-		);
+		)
+	;
 }
-bool Rect::IsColliding(Rect * Other) {
-	return CheckCollisionRecs(*this, *Other);
+void Rect::operator=(Vector2 NewPos) {
+	this->x = NewPos.x;
+	this->y = NewPos.y;
 }
-void Rect::operator=(Vector2 NewPosition) {
-	this->x = NewPosition.x;
-	this->y = NewPosition.y;
+void Rect::SetCenter(Vector2 NewCenter) {
+	this->x = NewCenter.x - this->w/2;
+	this->y = NewCenter.y - this->h/2;
 }
 Vector2 Rect::GetCenter() {
 	return {this->x + this->w / 2.0f, this->y + this->h / 2.0f};
