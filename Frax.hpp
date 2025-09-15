@@ -248,12 +248,12 @@ void Rect::SetTextureFile(std::string TextureFile) {
 void Rect::Draw() {
 
 	(this->TextureFile.empty()) ? 
-		DrawRectangle(this->x, this->y, this->w, this->h, this->Tint)
+		DrawRectangle(this->x + this->w / 2.0f, this->y + this->h / 2.0f, this->w, this->h, this->Tint)
 	:	
 		DrawTexturePro(
 			Textures[this->TextureFile], 
 			this->Source, 
-			Rectangle{ this->x, this->y, this->w, this->h }, 
+			Rectangle{ this->x + this->w / 2.0f, this->y + this->h / 2.0f, this->w, this->h }, 
 			Vector2{ this->w / 2.0f, this->h / 2.0f }, 
 			this->Rotation, 
 			this->Tint
