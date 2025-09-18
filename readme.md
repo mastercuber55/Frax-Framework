@@ -1,7 +1,7 @@
 
 # Frax Framework
 
-Frax, a header only 2D easy-to-use game framework for making video games with raylib even easier written in C++11. 
+Frax, a header only 2D easy-to-use game framework for providing easier and structural way to use raylib.
 
 
 ## Features
@@ -17,7 +17,6 @@ Frax, a header only 2D easy-to-use game framework for making video games with ra
 
 - Network Management
 - Audio Management
-
 
 ## Installation & Configuration
 

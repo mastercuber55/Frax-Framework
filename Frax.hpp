@@ -78,7 +78,7 @@ struct Scene {
 	virtual bool ShouldClose();
 	virtual int Run();
 	virtual void Close(int CodeToReturn = 0);
-	virtual void Update();
+	virtual void Update(float dt);
 	virtual void Draw();
 
 	~Scene();
@@ -118,6 +118,17 @@ struct Rect {
 	// Utilities
 	void Draw();									
 
+};
+
+struct AniRect : Rect {
+	int frames;
+	int currentFrame;
+
+	AniRect(Rectangle Destination, std::string TextureFile);
+	~AniRect();
+
+	void Animate();
+	void setAnimationFile(std::string TextureFile);
 };
 
 #ifdef FRAX_RAYGUI
@@ -172,8 +183,10 @@ Vector2 GetRandomPosition(Camera2D Cam);
 namespace Frax {
 
 Vector2 ScreenSize;
-std::unordered_map<std::string, Texture> Textures; // OwO what is this so private data
-
+// Might change the bottom two into pointer based system.
+// Currently, if a texture is no longer needed it remains here, which needs to be solved.
+std::unordered_map<std::string, Texture> Textures; // Key, Val storage of textures
+std::unordered_map<std::string, Texture> GifTextures; // Key, Val storage of Gif Textures;
 //----------------------------------------------------------------------------------
 // Structures Definitions (Module: Structures)
 //----------------------------------------------------------------------------------
@@ -183,7 +196,7 @@ Scene::Scene(Color BackgroundColor) {
 	this->CodeToReturn = 0;
 	this->KeepRunning = true;
 }
-void Scene::Update() {}
+void Scene::Update(float dt) {}
 void Scene::Draw() {}
 void Scene::Close(int CodeToReturn) {
 	this->KeepRunning = false;
@@ -196,7 +209,8 @@ int Scene::Run() {
 		//------------------------------------------------------------------------------------
 		// Event And Logic Handling
 		//------------------------------------------------------------------------------------
-		this->Update();
+		float dt = GetFrameTime();
+		this->Update(dt);
 		//------------------------------------------------------------------------------------
 		//  Drawing
 		//------------------------------------------------------------------------------------		
@@ -276,6 +290,22 @@ Rect::operator Vector2() const {
 }
 Rect::operator Rectangle() const {
 	return { this->x, this->y, this->w, this->h };
+}
+
+AniRect::AniRect(Rectangle dest, std::string TextureFile) : Rect(dest, WHITE) {
+
+	this->setAnimationFile(TextureFile);
+}
+
+void AniRect::setAnimationFile(std::string TextureFile) {
+	this->TextureFile = TextureFile;
+	if(GifTextures.find(TextureFile) != GifTextures.end()) return;
+	Image gif = LoadImageAnim(TextureFile.c_str(), &this->frames);
+	GifTextures[TextureFile] = LoadTextureFromImage(gif);
+}
+
+void AniRect::Animate() {
+	DrawTextureEx(GifTextures[this->TextureFile], {this->x, this->y}, this->Rotation, 1, this->Tint);
 }
 
 #ifdef RAYGUI_H
