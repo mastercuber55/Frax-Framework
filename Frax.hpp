@@ -113,16 +113,16 @@ struct Rect {
   std::any Data;
 
   // De-Constructers
-  Rect(float x, float y, float w, float h);
-  Rect(Rectangle Destination, Color Tint);
-  Rect(Rectangle Destination, std::string TextureFile,
+  Rect(float x, float y, float w, float h, Color tint = WHITE);
+  Rect(Rectangle dest, Color tint = WHITE);
+  Rect(Rectangle dest, const std::string& textureFileStr,
        Rectangle Source = {0, 0, -1, -1});
   ~Rect();
 
   // Setters
-  void SetCenter(Vector2 NewCenter);
-  void operator=(Vector2 NewPos);
-  void SetTextureFile(std::string &TextureFile);
+  void SetCenter(Vector2 cenpos);
+  void operator=(Vector2 pos);
+  void SetTextureFile(const std::string &textureFileStr);
 
   // Getters
   Vector2 GetCenter();
@@ -141,7 +141,7 @@ struct GuiWindow {
   float x, y, w, h;
   std::string Title;
 
-  GuiWindow(Rectangle Destination, std::string Title);
+  GuiWindow(Rectangle dest, std::string Title);
 
   void Update();
   void Draw(std::function<void(Vector2 Offset)> Function);
@@ -154,17 +154,17 @@ private:
 //------------------------------------------------------------------------------------
 // Initialization And Closing Functions (Module: Core)
 //------------------------------------------------------------------------------------
-//
-void Init(std::string WindowTitle, Vector2 ScrnSize = {0, 0});
+
+void Init(const std::string& windowTitle, Vector2 scrnSize = {0, 0});
 void Close();
 
 //------------------------------------------------------------------------------------
 // Tool Functions (Module: Tools)
 //------------------------------------------------------------------------------------
 
-void WASDMovement(Rect *Object, float Speed);
+void WASDMovement(Rect *obj, float speed);
 bool AreColorSame(Color A, Color B);
-Vector2 GetRandomPosition(Camera2D Cam);
+Vector2 GetRandomPosition(Camera2D cam);
 
 } // namespace Frax
 #endif // FRAX_FRAMEWORK
@@ -194,16 +194,16 @@ std::unordered_map<size_t, std::weak_ptr<Texture>> Textures;
 // Structures Definitions (Module: Structures)
 //----------------------------------------------------------------------------------
 
-Scene::Scene(Color BackgroundColor) {
-  this->BackgroundColor = BackgroundColor;
+Scene::Scene(Color bgClr) {
+  this->BackgroundColor = bgClr;
   this->CodeToReturn = 0;
   this->KeepRunning = true;
 }
 void Scene::Update(float dt) {}
 void Scene::Draw() {}
-void Scene::Close(int CodeToReturn) {
+void Scene::Close(int ctr) {
   this->KeepRunning = false;
-  this->CodeToReturn = CodeToReturn;
+  this->CodeToReturn = ctr;
 }
 int Scene::Run() {
 
@@ -227,33 +227,31 @@ int Scene::Run() {
 bool Scene::ShouldClose() { return !KeepRunning || WindowShouldClose(); }
 Scene::~Scene() {}
 
-Rect::Rect(float x, float y, float w, float h) {
+Rect::Rect(float x, float y, float w, float h, Color tint) {
   this->x = x, this->y = y;
   this->w = w, this->h = h;
-  this->Tint = WHITE;
+  this->Tint = tint;
   this->Source = {0, 0, -1, -1}, this->Rotation = 0.0;
 
   FRAX_DEBUG("Frax::Rect created at (%f, %f) with size (%f, %f)", x, y, w, h);
 }
 
-Rect::Rect(Rectangle Rec, Color Tint)
-    : Rect(Rec.x, Rec.y, Rec.width, Rec.height) {
-  this->Tint = Tint;
-}
-Rect::Rect(Rectangle Destination, std::string TextureFile, Rectangle Source)
-    : Rect(Destination, WHITE) {
+Rect::Rect(Rectangle dest, Color tint)
+    : Rect(dest.x, dest.y, dest.width, dest.height, tint) {}
+Rect::Rect(Rectangle dest, const std::string& textureFileStr, Rectangle Source)
+    : Rect(dest, WHITE) {
   this->Source = Source;
-  this->SetTextureFile(TextureFile);
+  this->SetTextureFile(textureFileStr);
 }
 Rect::~Rect() {}
-void Rect::SetTextureFile(std::string &TextureFile) {
+void Rect::SetTextureFile(const std::string &textureFileStr) {
 
-  auto hash = HashTextureKey(TextureFile);
+  auto hash = HashTextureKey(textureFileStr);
   auto it = Textures.find(hash);
   if (it != Textures.end()) {
     TexturePtr = it->second.lock();
   }
-  TexturePtr = std::make_shared<Texture>(LoadTexture(TextureFile.c_str()));
+  TexturePtr = std::make_shared<Texture>(LoadTexture(textureFileStr.c_str()));
   Textures[hash] = TexturePtr;
 
   if (Source.x == 0 && Source.y == 0 && Source.width == -1 &&
@@ -270,27 +268,27 @@ void Rect::Draw() {
 
   FRAX_DEBUG("Drew a Frax::Rect at (%f, %f)", x, y);
 }
-void Rect::operator=(Vector2 NewPos) {
-  this->x = NewPos.x;
-  this->y = NewPos.y;
+void Rect::operator=(Vector2 pos) {
+  x = pos.x;
+  y = pos.y;
 }
-void Rect::SetCenter(Vector2 NewCenter) {
-  this->x = NewCenter.x - this->w / 2;
-  this->y = NewCenter.y - this->h / 2;
+void Rect::SetCenter(Vector2 cenpos) {
+  x = cenpos.x - w / 2;
+  y = cenpos.y - h / 2;
 }
 Vector2 Rect::GetCenter() {
-  return {this->x + this->w / 2.0f, this->y + this->h / 2.0f};
+  return {x + w / 2.0f, y + h / 2.0f};
 }
 Rect::operator Vector2() const { return {this->x, this->y}; }
 Rect::operator Rectangle() const {
-  return {this->x, this->y, this->w, this->h};
+  return {x, y, w, h};
 }
 
 #ifdef RAYGUI_H
 
-GuiWindow::GuiWindow(Rectangle Destination, std::string Title) {
-  this->x = Destination.x, this->y = Destination.y, this->w = Destination.width,
-  this->h = Destination.height;
+GuiWindow::GuiWindow(Rectangle dest, std::string Title) {
+  this->x = dest.x, this->y = dest.y, this->w = dest.width,
+  this->h = dest.height;
 
   this->Title = Title;
 
@@ -325,24 +323,24 @@ void GuiWindow::Draw(std::function<void(Vector2 Offset)> Function) {
 }
 #endif // RAYGUI_H
 
-void Init(std::string Title, Vector2 ScrnSize) {
+void Init(const std::string& title, Vector2 scrnSize) {
 
   TraceLog(LOG_INFO, "Initializing Frax %s", FRAX_FRAMEWORK);
 
   // Convinently, raylib allows passing 0, 0 to get maximum screen size possible
   // on current monitor.
 
-  InitWindow(ScrnSize.x, ScrnSize.y, Title.c_str());
+  InitWindow(scrnSize.x, scrnSize.y, title.c_str());
   InitAudioDevice();
 
-  if (ScrnSize.x == 0 && ScrnSize.y == 0) {
+  if (scrnSize.x == 0 && scrnSize.y == 0) {
 
     // Changed from GetMonitor...() to add android compability
-    ScrnSize.x = GetScreenWidth();
-    ScrnSize.y = GetScreenHeight();
+    scrnSize.x = GetScreenWidth();
+    scrnSize.y = GetScreenHeight();
   }
 
-  ScreenSize = ScrnSize;
+  ScreenSize = scrnSize;
 
   SetExitKey(KEY_NULL);
   SetTargetFPS(FRAX_DEFAULT_FPS);
@@ -359,23 +357,23 @@ void Close() {
 // Tool Functions (Module: Tools)
 //------------------------------------------------------------------------------------
 
-void WASDMovement(Rect *Object, float Speed) {
+void WASDMovement(Rect *obj, float spd) {
   if (IsKeyDown(KEY_W))
-    Object->y += -Speed;
+    obj->y += -spd;
   if (IsKeyDown(KEY_A))
-    Object->x += -Speed;
+    obj->x += -spd;
   if (IsKeyDown(KEY_S))
-    Object->y += +Speed;
+    obj->y += +spd;
   if (IsKeyDown(KEY_D))
-    Object->x += +Speed;
+    obj->x += +spd;
 }
 
 bool AreColorSame(Color A, Color B) { return ColorToInt(A) == ColorToInt(B); }
-Vector2 GetRandomPosition(Camera2D Cam) {
-  return {(float)(GetRandomValue(Cam.target.x - Cam.offset.x,
-                                 Cam.target.x + Cam.offset.x)),
-          (float)(GetRandomValue(Cam.target.y - Cam.offset.y,
-                                 Cam.target.y + Cam.offset.y))};
+Vector2 GetRandomPosition(Camera2D cam) {
+  return {(float)(GetRandomValue(cam.target.x - cam.offset.x,
+                                 cam.target.x + cam.offset.x)),
+          (float)(GetRandomValue(cam.target.y - cam.offset.y,
+                                 cam.target.y + cam.offset.y))};
 }
 
 } // namespace Frax
