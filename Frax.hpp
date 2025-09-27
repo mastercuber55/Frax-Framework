@@ -1,13 +1,12 @@
 /********************************************************************************************************************************************************
  *
- *   Frax Framework v2.0 - A simple and easy-to-use game emgine.
+ *   Frax Framework v2.0 - A simple and easy-to-use framework.
  *
  *   FEATURES:
- *       - NO forced external dependencies, expect raylib.
- *       - Multiplatform: My guess is that its just as good as raylib.
+ *       - NO forced external dependencies, expect raylib and standard library.
  *
  *   NOTES:
- *		- In just a SINGLE file before including #define FRAX_IML
+ *		- In just a SINGLE file before including #define FRAX_IMPL
  *		- Macros are prefixed with FRAX
  *
  *   DEPENDENCIES:
@@ -42,6 +41,8 @@
  *
  ********************************************************************************************************************************************************/
 
+#include <cstddef>
+#include <memory>
 #ifndef FRAX_FRAMEWORK
 #define FRAX_FRAMEWORK "2.0"
 
@@ -53,6 +54,14 @@
 #define FRAX_DEFAULT_FPS 60
 #endif
 
+#ifdef ENABLE_FRAX_DEBUG
+#define FRAX_DEBUG(...) TraceLog(LOG_INFO, __VA_ARGS__)
+#else
+#define FRAX_DEBUG(...)                                                        \
+  while (false) {                                                              \
+  }
+#endif
+
 #include <any>
 #include <raylib.h>
 #include <string>
@@ -61,8 +70,8 @@
 #ifdef FRAX_IMPL
 #define RAYGUI_IMPLEMENTATION
 #endif
-#include <raygui.h>
 #include <functional>
+#include <raygui.h>
 #endif // FRAX_RAYGUI
 
 namespace Frax {
@@ -96,11 +105,11 @@ struct Rect {
   float x, y, w, h;
   double Rotation;
 
-  std::string TextureFile;
+  std::shared_ptr<Texture> TexturePtr;
   Rectangle Source;
   Color Tint;
 
-  // Idk, whatever you want. I don't care.
+  // Idk, whatever you want. Store anything.
   std::any Data;
 
   // De-Constructers
@@ -113,7 +122,7 @@ struct Rect {
   // Setters
   void SetCenter(Vector2 NewCenter);
   void operator=(Vector2 NewPos);
-  void SetTextureFile(std::string TextureFile);
+  void SetTextureFile(std::string &TextureFile);
 
   // Getters
   Vector2 GetCenter();
@@ -122,17 +131,6 @@ struct Rect {
 
   // Utilities
   void Draw();
-};
-
-struct AniRect : Rect {
-  int frames;
-  int currentFrame;
-
-  AniRect(Rectangle Destination, std::string TextureFile);
-  ~AniRect();
-
-  void Animate();
-  void setAnimationFile(std::string TextureFile);
 };
 
 #ifdef FRAX_RAYGUI
@@ -175,12 +173,11 @@ Vector2 GetRandomPosition(Camera2D Cam);
 // No need to go any further, you know.
 //------------------------------------------------------------------------------------
 
+// #define FRAX_IMPL
 #ifdef FRAX_IMPL
 #undef FRAX_IMPL
 
-#include <algorithm>
 #include <unordered_map>
-
 //------------------------------------------------------------------------------------
 // Variables (Module: Variables)
 //------------------------------------------------------------------------------------
@@ -191,10 +188,8 @@ Vector2 ScreenSize;
 // Might change the bottom two into pointer based system.
 // Currently, if a texture is no longer needed it remains here, which needs to
 // be solved.
-std::unordered_map<std::string, Texture>
-    Textures; // Key, Val storage of textures
-std::unordered_map<std::string, Texture>
-    GifTextures; // Key, Val storage of Gif Textures;
+std::hash<std::string> HashTextureKey;
+std::unordered_map<size_t, std::weak_ptr<Texture>> Textures;
 //----------------------------------------------------------------------------------
 // Structures Definitions (Module: Structures)
 //----------------------------------------------------------------------------------
@@ -237,6 +232,8 @@ Rect::Rect(float x, float y, float w, float h) {
   this->w = w, this->h = h;
   this->Tint = WHITE;
   this->Source = {0, 0, -1, -1}, this->Rotation = 0.0;
+
+  FRAX_DEBUG("Frax::Rect created at (%f, %f) with size (%f, %f)", x, y, w, h);
 }
 
 Rect::Rect(Rectangle Rec, Color Tint)
@@ -249,29 +246,29 @@ Rect::Rect(Rectangle Destination, std::string TextureFile, Rectangle Source)
   this->SetTextureFile(TextureFile);
 }
 Rect::~Rect() {}
-void Rect::SetTextureFile(std::string TextureFile) {
+void Rect::SetTextureFile(std::string &TextureFile) {
 
-  this->TextureFile = TextureFile;
-  if (Textures.find(TextureFile) != Textures.end())
-    return;
-  Textures[TextureFile] = LoadTexture(TextureFile.c_str());
+  auto hash = HashTextureKey(TextureFile);
+  auto it = Textures.find(hash);
+  if (it != Textures.end()) {
+    TexturePtr = it->second.lock();
+  }
+  TexturePtr = std::make_shared<Texture>(LoadTexture(TextureFile.c_str()));
+  Textures[hash] = TexturePtr;
 
-  if (this->Source.x == 0 && this->Source.y == 0 && this->Source.width == -1 &&
-      this->Source.height == -1) {
-    this->Source.width = Textures[TextureFile].width,
-    this->Source.height = Textures[TextureFile].height;
+  if (Source.x == 0 && Source.y == 0 && Source.width == -1 &&
+      Source.height == -1) {
+    Source.width = TexturePtr->width, Source.height = TexturePtr->height;
   }
 }
 void Rect::Draw() {
 
-  (this->TextureFile.empty())
-      ? DrawRectangle(this->x + this->w / 2.0f, this->y + this->h / 2.0f,
-                      this->w, this->h, this->Tint)
-      : DrawTexturePro(Textures[this->TextureFile], this->Source,
-                       Rectangle{this->x + this->w / 2.0f,
-                                 this->y + this->h / 2.0f, this->w, this->h},
-                       Vector2{this->w / 2.0f, this->h / 2.0f}, this->Rotation,
-                       this->Tint);
+  (!TexturePtr)
+      ? DrawRectangle(x, y, w, h, this->Tint)
+      : DrawTexturePro(*TexturePtr, Source, {x + w / 2.0f, y + h / 2.0f, w, h},
+                       {w / 2.0f, h / 2.0f}, Rotation, Tint);
+
+  FRAX_DEBUG("Drew a Frax::Rect at (%f, %f)", x, y);
 }
 void Rect::operator=(Vector2 NewPos) {
   this->x = NewPos.x;
@@ -287,24 +284,6 @@ Vector2 Rect::GetCenter() {
 Rect::operator Vector2() const { return {this->x, this->y}; }
 Rect::operator Rectangle() const {
   return {this->x, this->y, this->w, this->h};
-}
-
-AniRect::AniRect(Rectangle dest, std::string TextureFile) : Rect(dest, WHITE) {
-
-  this->setAnimationFile(TextureFile);
-}
-
-void AniRect::setAnimationFile(std::string TextureFile) {
-  this->TextureFile = TextureFile;
-  if (GifTextures.find(TextureFile) != GifTextures.end())
-    return;
-  Image gif = LoadImageAnim(TextureFile.c_str(), &this->frames);
-  GifTextures[TextureFile] = LoadTextureFromImage(gif);
-}
-
-void AniRect::Animate() {
-  DrawTextureEx(GifTextures[this->TextureFile], {this->x, this->y},
-                this->Rotation, 1, this->Tint);
 }
 
 #ifdef RAYGUI_H
