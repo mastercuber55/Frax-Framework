@@ -41,7 +41,6 @@
  *
  ********************************************************************************************************************************************************/
 
-#include <cstddef>
 #include <memory>
 #ifndef FRAX_FRAMEWORK
 #define FRAX_FRAMEWORK "2.0"
@@ -115,7 +114,7 @@ struct Rect {
   // De-Constructers
   Rect(float x, float y, float w, float h, Color tint = WHITE);
   Rect(Rectangle dest, Color tint = WHITE);
-  Rect(Rectangle dest, const std::string& textureFileStr,
+  Rect(Rectangle dest, const std::string &textureFileStr,
        Rectangle Source = {0, 0, -1, -1});
   ~Rect();
 
@@ -155,7 +154,7 @@ private:
 // Initialization And Closing Functions (Module: Core)
 //------------------------------------------------------------------------------------
 
-void Init(const std::string& windowTitle, Vector2 scrnSize = {0, 0});
+void Init(const std::string &windowTitle, Vector2 scrnSize = {0, 0});
 void Close();
 
 //------------------------------------------------------------------------------------
@@ -164,7 +163,8 @@ void Close();
 
 void WASDMovement(Rect *obj, float speed);
 bool AreColorSame(Color A, Color B);
-Vector2 GetRandomPosition(Camera2D cam);
+Vector2 GetRandomPositionInside(Camera2D cam);
+Vector2 GetRandomPositionOutside(Camera2D cam, float margin = 0.0f);
 
 } // namespace Frax
 #endif // FRAX_FRAMEWORK
@@ -189,6 +189,11 @@ Vector2 ScreenSize;
 // Currently, if a texture is no longer needed it remains here, which needs to
 // be solved.
 std::hash<std::string> HashTextureKey;
+auto TextureUnloader = [](Texture *tex) {
+  if (tex)
+    UnloadTexture(*tex);
+  delete tex;
+};
 std::unordered_map<size_t, std::weak_ptr<Texture>> Textures;
 //----------------------------------------------------------------------------------
 // Structures Definitions (Module: Structures)
@@ -232,32 +237,32 @@ Rect::Rect(float x, float y, float w, float h, Color tint) {
   this->w = w, this->h = h;
   this->Tint = tint;
   this->Source = {0, 0, -1, -1}, this->Rotation = 0.0;
-
-  FRAX_DEBUG("Frax::Rect created at (%f, %f) with size (%f, %f)", x, y, w, h);
 }
 
 Rect::Rect(Rectangle dest, Color tint)
     : Rect(dest.x, dest.y, dest.width, dest.height, tint) {}
-Rect::Rect(Rectangle dest, const std::string& textureFileStr, Rectangle Source)
+Rect::Rect(Rectangle dest, const std::string &textureFileStr, Rectangle Source)
     : Rect(dest, WHITE) {
   this->Source = Source;
   this->SetTextureFile(textureFileStr);
 }
-Rect::~Rect() {}
+Rect::~Rect() {
+    if(TexturePtr)
+      TexturePtr.reset();
+}
 void Rect::SetTextureFile(const std::string &textureFileStr) {
 
   auto hash = HashTextureKey(textureFileStr);
   auto it = Textures.find(hash);
   if (it != Textures.end()) {
     TexturePtr = it->second.lock();
+    Source.width = TexturePtr->width, Source.height = TexturePtr->height;
+    return;
   }
   TexturePtr = std::make_shared<Texture>(LoadTexture(textureFileStr.c_str()));
   Textures[hash] = TexturePtr;
 
-  if (Source.x == 0 && Source.y == 0 && Source.width == -1 &&
-      Source.height == -1) {
-    Source.width = TexturePtr->width, Source.height = TexturePtr->height;
-  }
+  Source.width = TexturePtr->width, Source.height = TexturePtr->height;
 }
 void Rect::Draw() {
 
@@ -265,8 +270,6 @@ void Rect::Draw() {
       ? DrawRectangle(x, y, w, h, this->Tint)
       : DrawTexturePro(*TexturePtr, Source, {x + w / 2.0f, y + h / 2.0f, w, h},
                        {w / 2.0f, h / 2.0f}, Rotation, Tint);
-
-  FRAX_DEBUG("Drew a Frax::Rect at (%f, %f)", x, y);
 }
 void Rect::operator=(Vector2 pos) {
   x = pos.x;
@@ -276,13 +279,9 @@ void Rect::SetCenter(Vector2 cenpos) {
   x = cenpos.x - w / 2;
   y = cenpos.y - h / 2;
 }
-Vector2 Rect::GetCenter() {
-  return {x + w / 2.0f, y + h / 2.0f};
-}
+Vector2 Rect::GetCenter() { return {x + w / 2.0f, y + h / 2.0f}; }
 Rect::operator Vector2() const { return {this->x, this->y}; }
-Rect::operator Rectangle() const {
-  return {x, y, w, h};
-}
+Rect::operator Rectangle() const { return {x, y, w, h}; }
 
 #ifdef RAYGUI_H
 
@@ -323,7 +322,7 @@ void GuiWindow::Draw(std::function<void(Vector2 Offset)> Function) {
 }
 #endif // RAYGUI_H
 
-void Init(const std::string& title, Vector2 scrnSize) {
+void Init(const std::string &title, Vector2 scrnSize) {
 
   TraceLog(LOG_INFO, "Initializing Frax %s", FRAX_FRAMEWORK);
 
@@ -369,11 +368,58 @@ void WASDMovement(Rect *obj, float spd) {
 }
 
 bool AreColorSame(Color A, Color B) { return ColorToInt(A) == ColorToInt(B); }
-Vector2 GetRandomPosition(Camera2D cam) {
+
+Vector2 GetRandomPositionInside(Camera2D cam) {
   return {(float)(GetRandomValue(cam.target.x - cam.offset.x,
                                  cam.target.x + cam.offset.x)),
           (float)(GetRandomValue(cam.target.y - cam.offset.y,
                                  cam.target.y + cam.offset.y))};
+}
+
+Vector2 GetRandomPositionOutside(Camera2D cam, float margin) {
+
+  // 0 1, 2
+  // 3, 4, 5
+  // 6, 7, 8
+  int section = 4;
+  while (section == 4) {
+    section = GetRandomValue(0, 8);
+  }
+
+  Vector2 pos = GetRandomPositionInside(cam);
+
+  switch (section) {
+  case 0:
+    pos.x -= ScreenSize.x;
+    pos.y -= ScreenSize.y;
+    break;
+  case 1:
+    pos.y -= ScreenSize.y;
+    break;
+  case 2:
+    pos.x += ScreenSize.x;
+    pos.y -= ScreenSize.y;
+    break;
+  case 3:
+    pos.x -= ScreenSize.x;
+    break;
+  case 5:
+    pos.x += ScreenSize.x;
+    break;
+  case 6:
+    pos.x -= ScreenSize.x;
+    pos.y += ScreenSize.y;
+    break;
+  case 7:
+    pos.y += ScreenSize.y;
+    break;
+  case 8:
+    pos.x += ScreenSize.x;
+    pos.y += ScreenSize.y;
+    break;
+  }
+
+  return pos;
 }
 
 } // namespace Frax
