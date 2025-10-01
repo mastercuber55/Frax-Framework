@@ -41,16 +41,11 @@
  *
  ********************************************************************************************************************************************************/
 
-#include <memory>
 #ifndef FRAX_FRAMEWORK
 #define FRAX_FRAMEWORK "2.0"
 
 #ifndef FRAX_SCENE_DEFAULT_BACKGROUND_COLOR
 #define FRAX_SCENE_DEFAULT_BACKGROUND_COLOR BLACK
-#endif
-
-#ifndef FRAX_DEFAULT_FPS
-#define FRAX_DEFAULT_FPS 60
 #endif
 
 #ifdef ENABLE_FRAX_DEBUG
@@ -62,6 +57,7 @@
 #endif
 
 #include <any>
+#include <memory>
 #include <raylib.h>
 #include <string>
 
@@ -342,7 +338,6 @@ void Init(const std::string &title, Vector2 scrnSize) {
   ScreenSize = scrnSize;
 
   SetExitKey(KEY_NULL);
-  SetTargetFPS(FRAX_DEFAULT_FPS);
 }
 void Close() {
 
