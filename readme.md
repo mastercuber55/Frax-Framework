@@ -166,7 +166,7 @@ struct Entity : Frax::Rect {
 
     using Rect::Rect; // inherit all constructors
 
-    void Draw();
+    void Draw(); // Syncs the Virtual Body and Physical Body's positions and orientation before actually drawing.
 };
 ```
 
