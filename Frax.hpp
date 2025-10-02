@@ -56,7 +56,6 @@
   }
 #endif
 
-#include <any>
 #include <memory>
 #include <raylib.h>
 #include <string>
@@ -103,9 +102,6 @@ struct Rect {
   std::shared_ptr<Texture> TexturePtr;
   Rectangle Source;
   Color Tint;
-
-  // Idk, whatever you want. Store anything.
-  std::any Data;
 
   // De-Constructers
   Rect(float x, float y, float w, float h, Color tint = WHITE);
