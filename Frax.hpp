@@ -41,6 +41,7 @@
  *
  ********************************************************************************************************************************************************/
 
+#include <any>
 #ifndef FRAX_FRAMEWORK
 #define FRAX_FRAMEWORK "2.0"
 
@@ -79,17 +80,19 @@ extern Vector2 ScreenSize;
 struct Scene {
 
   Color BackgroundColor;
-  bool KeepRunning;
-  int CodeToReturn;
+  std::any ReturnData;
 
   Scene(Color BackgroundColor = FRAX_SCENE_DEFAULT_BACKGROUND_COLOR);
   virtual bool ShouldClose();
-  virtual int Run();
-  virtual void Close(int CodeToReturn = 0);
+  virtual std::any Run();
+  virtual void Close(std::any returnData);
   virtual void Update(float dt);
   virtual void Draw();
 
   ~Scene();
+
+private:
+  bool KeepRunning;
 };
 
 // Used for easier rectangle manipulation
@@ -192,17 +195,16 @@ std::unordered_map<size_t, std::weak_ptr<Texture>> Textures;
 //----------------------------------------------------------------------------------
 
 Scene::Scene(Color bgClr) {
-  this->BackgroundColor = bgClr;
-  this->CodeToReturn = 0;
-  this->KeepRunning = true;
+  BackgroundColor = bgClr;
+  KeepRunning = true;
 }
 void Scene::Update(float dt) {}
 void Scene::Draw() {}
-void Scene::Close(int ctr) {
-  this->KeepRunning = false;
-  this->CodeToReturn = ctr;
+void Scene::Close(std::any returnData) {
+  KeepRunning = false;
+  ReturnData = returnData;
 }
-int Scene::Run() {
+std::any Scene::Run() {
 
   while (!this->ShouldClose()) {
 
@@ -215,11 +217,11 @@ int Scene::Run() {
     //  Drawing
     //------------------------------------------------------------------------------------
     BeginDrawing();
-    ClearBackground(this->BackgroundColor);
-    this->Draw();
+    ClearBackground(BackgroundColor);
+    Draw();
     EndDrawing();
   }
-  return this->CodeToReturn;
+  return ReturnData;
 }
 bool Scene::ShouldClose() { return !KeepRunning || WindowShouldClose(); }
 Scene::~Scene() {}
