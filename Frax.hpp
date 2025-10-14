@@ -45,8 +45,8 @@
 #ifndef FRAX_FRAMEWORK
 #define FRAX_FRAMEWORK "2.0"
 
-#ifndef FRAX_SCENE_DEFAULT_BACKGROUND_COLOR
-#define FRAX_SCENE_DEFAULT_BACKGROUND_COLOR BLACK
+#ifndef FRAX_BG_CLR
+#define FRAX_BG_CLR BLACK
 #endif
 
 #ifdef ENABLE_FRAX_DEBUG
@@ -79,10 +79,9 @@ extern Vector2 ScreenSize;
 
 struct Scene {
 
-  Color BackgroundColor;
   std::any ReturnData;
 
-  Scene(Color BackgroundColor = FRAX_SCENE_DEFAULT_BACKGROUND_COLOR);
+  Scene();
   virtual bool ShouldClose();
   virtual std::any Run();
   virtual void Close(std::any returnData);
@@ -110,7 +109,7 @@ struct Rect {
   Rect(float x, float y, float w, float h, Color tint = WHITE);
   Rect(Rectangle dest, Color tint = WHITE);
   Rect(Rectangle dest, const std::string &textureFileStr,
-       Rectangle Source = {0, 0, -1, -1});
+       Rectangle Source = {0, 0, 0, 0});
   ~Rect();
 
   // Setters
@@ -184,21 +183,13 @@ Vector2 ScreenSize;
 // Currently, if a texture is no longer needed it remains here, which needs to
 // be solved.
 std::hash<std::string> HashTextureKey;
-auto TextureUnloader = [](Texture *tex) {
-  if (tex)
-    UnloadTexture(*tex);
-  delete tex;
-};
 std::unordered_map<size_t, std::weak_ptr<Texture>> Textures;
 //----------------------------------------------------------------------------------
 // Structures Definitions (Module: Structures)
 //----------------------------------------------------------------------------------
 
-Scene::Scene(Color bgClr) {
-  BackgroundColor = bgClr;
-  KeepRunning = true;
-}
-void Scene::Update(float dt) {}
+Scene::Scene() { KeepRunning = true; }
+void Scene::Update(float dt) { (void)dt; }
 void Scene::Draw() {}
 void Scene::Close(std::any returnData) {
   KeepRunning = false;
@@ -217,7 +208,7 @@ std::any Scene::Run() {
     //  Drawing
     //------------------------------------------------------------------------------------
     BeginDrawing();
-    ClearBackground(BackgroundColor);
+    ClearBackground(FRAX_BG_CLR);
     Draw();
     EndDrawing();
   }
@@ -230,7 +221,7 @@ Rect::Rect(float x, float y, float w, float h, Color tint) {
   this->x = x, this->y = y;
   this->w = w, this->h = h;
   this->Tint = tint;
-  this->Source = {0, 0, -1, -1}, this->Rotation = 0.0;
+  this->Source = {0, 0, 0, 0}, this->Rotation = 0.0;
 }
 
 Rect::Rect(Rectangle dest, Color tint)
@@ -241,8 +232,8 @@ Rect::Rect(Rectangle dest, const std::string &textureFileStr, Rectangle Source)
   this->SetTextureFile(textureFileStr);
 }
 Rect::~Rect() {
-    if(TexturePtr)
-      TexturePtr.reset();
+  if (TexturePtr)
+    TexturePtr.reset(); //  Reduce reference count.
 }
 void Rect::SetTextureFile(const std::string &textureFileStr) {
 
@@ -250,20 +241,30 @@ void Rect::SetTextureFile(const std::string &textureFileStr) {
   auto it = Textures.find(hash);
   if (it != Textures.end()) {
     TexturePtr = it->second.lock();
-    Source.width = TexturePtr->width, Source.height = TexturePtr->height;
     return;
   }
-  TexturePtr = std::make_shared<Texture>(LoadTexture(textureFileStr.c_str()));
+  TexturePtr = std::shared_ptr<Texture>(
+      new Texture(LoadTexture(textureFileStr.c_str())), [hash](Texture *t) {
+        UnloadTexture(*t);
+        delete t;
+        Textures.erase(hash);
+      });
   Textures[hash] = TexturePtr;
-
-  Source.width = TexturePtr->width, Source.height = TexturePtr->height;
 }
 void Rect::Draw() {
 
-  (!TexturePtr)
-      ? DrawRectangle(x, y, w, h, this->Tint)
-      : DrawTexturePro(*TexturePtr, Source, {x + w / 2.0f, y + h / 2.0f, w, h},
-                       {w / 2.0f, h / 2.0f}, Rotation, Tint);
+  if (TexturePtr) {
+    Rectangle currSource =
+        (Source.height == 0 && Source.width == 0)
+            ? Rectangle{0, 0, static_cast<float>(TexturePtr->width),
+                        static_cast<float>(TexturePtr->height)}
+            : Source;
+
+    DrawTexturePro(*TexturePtr, currSource, {x + w / 2.0f, y + h / 2.0f, w, h},
+                   {w / 2.0f, h / 2.0f}, Rotation, Tint);
+  } else {
+    DrawRectangle(x, y, w, h, this->Tint);
+  }
 }
 void Rect::operator=(Vector2 pos) {
   x = pos.x;
@@ -370,6 +371,8 @@ Vector2 GetRandomPositionInside(Camera2D cam) {
 }
 
 Vector2 GetRandomPositionOutside(Camera2D cam, float margin) {
+
+  (void)margin; // TO CODE LATER
 
   // 0 1, 2
   // 3, 4, 5
