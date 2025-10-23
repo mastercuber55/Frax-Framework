@@ -90,7 +90,6 @@ struct Scene {
 
   ~Scene();
 
-private:
   bool KeepRunning;
 };
 
