@@ -12,9 +12,6 @@
  *   DEPENDENCIES:
  *       [raylib] for almost everything.
  *
- *   OPTIONAL DEPENDENCIES:
- *		[raygui] for GuiWIndow
- *
  *   LICENSE: MIT
  *
  * 	MIT License
@@ -45,10 +42,6 @@
 #ifndef FRAX_FRAMEWORK
 #define FRAX_FRAMEWORK "2.0"
 
-#ifndef FRAX_BG_CLR
-#define FRAX_BG_CLR BLACK
-#endif
-
 #ifdef ENABLE_FRAX_DEBUG
 #define FRAX_DEBUG(...) TraceLog(LOG_INFO, __VA_ARGS__)
 #else
@@ -61,17 +54,10 @@
 #include <raylib.h>
 #include <string>
 
-#ifdef FRAX_RAYGUI
-#ifdef FRAX_IMPL
-#define RAYGUI_IMPLEMENTATION
-#endif
-#include <functional>
-#include <raygui.h>
-#endif // FRAX_RAYGUI
-
 namespace Frax {
 
 extern Vector2 ScreenSize;
+extern bool KeepRunning;
 
 //----------------------------------------------------------------------------------
 // Structures Definitions (Module: Structures)
@@ -80,6 +66,7 @@ extern Vector2 ScreenSize;
 struct Scene {
 
   std::any ReturnData;
+  Color BackgroundColor = BLACK;
 
   Scene();
   virtual bool ShouldClose();
@@ -125,29 +112,16 @@ struct Rect {
   void Draw();
 };
 
-#ifdef FRAX_RAYGUI
-struct GuiWindow {
-
-  bool Hidden;
-
-  float x, y, w, h;
-  std::string Title;
-
-  GuiWindow(Rectangle dest, std::string Title);
-
-  void Update();
-  void Draw(std::function<void(Vector2 Offset)> Function);
-
-private:
-  bool Drag;
-};
-#endif // FRAX_RAYGUI
+// TODO: Add Touch Support
+void GuiMakeMoveableWindow(bool &Dragging, Vector2 &Anchor, float TitleBarWidth,
+                           float TitleBarHeight = 20.0f);
 
 //------------------------------------------------------------------------------------
 // Initialization And Closing Functions (Module: Core)
 //------------------------------------------------------------------------------------
 
 void Init(const std::string &windowTitle, Vector2 scrnSize = {0, 0});
+bool ShouldClose();
 void Close();
 
 //------------------------------------------------------------------------------------
@@ -178,6 +152,7 @@ Vector2 GetRandomPositionOutside(Camera2D cam, float margin = 0.0f);
 namespace Frax {
 
 Vector2 ScreenSize;
+bool KeepRunning = true;
 // Might change the bottom two into pointer based system.
 // Currently, if a texture is no longer needed it remains here, which needs to
 // be solved.
@@ -207,13 +182,13 @@ std::any Scene::Run() {
     //  Drawing
     //------------------------------------------------------------------------------------
     BeginDrawing();
-    ClearBackground(FRAX_BG_CLR);
+    ClearBackground(BackgroundColor);
     Draw();
     EndDrawing();
   }
   return ReturnData;
 }
-bool Scene::ShouldClose() { return !KeepRunning || WindowShouldClose(); }
+bool Scene::ShouldClose() { return !KeepRunning || Frax::ShouldClose(); }
 Scene::~Scene() {}
 
 Rect::Rect(float x, float y, float w, float h, Color tint) {
@@ -277,44 +252,24 @@ Vector2 Rect::GetCenter() { return {x + w / 2.0f, y + h / 2.0f}; }
 Rect::operator Vector2() const { return {this->x, this->y}; }
 Rect::operator Rectangle() const { return {x, y, w, h}; }
 
-#ifdef RAYGUI_H
+void GuiMakeMoveableWindow(bool &Dragging, Vector2 &Anchor, float TitleBarWidth,
+                           float TitleBarHeight) {
 
-GuiWindow::GuiWindow(Rectangle dest, std::string Title) {
-  this->x = dest.x, this->y = dest.y, this->w = dest.width,
-  this->h = dest.height;
+  Rectangle TitleBar = {Anchor.x, Anchor.y, TitleBarWidth, TitleBarHeight};
 
-  this->Title = Title;
-
-  this->Hidden = true;
-  this->Drag = false;
-}
-
-void GuiWindow::Update() {
-  if (this->Hidden)
-    return;
-  if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && !Drag &&
-      CheckCollisionPointRec(GetMousePosition(), {x, y, w, 20.0f}))
-    Drag = true;
-  if (Drag) {
-
-    Vector2 MouseDelta = GetMouseDelta();
-
-    this->x += MouseDelta.x;
-    this->y += MouseDelta.y;
-
-    if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
-      Drag = false;
+  if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+    if (CheckCollisionPointRec(GetMousePosition(), TitleBar)) {
+      Dragging = true;
+    }
+    if (Dragging) {
+      Vector2 delta = GetMouseDelta();
+      Anchor.x += delta.x;
+      Anchor.y += delta.y;
+    }
+  } else {
+    Dragging = false;
   }
 }
-
-void GuiWindow::Draw(std::function<void(Vector2 Offset)> Function) {
-  if (this->Hidden)
-    return;
-  this->Hidden = GuiWindowBox((Rectangle){x, y, w, h}, Title.c_str());
-
-  Function({this->x, this->y + 20.0f});
-}
-#endif // RAYGUI_H
 
 void Init(const std::string &title, Vector2 scrnSize) {
 
@@ -337,6 +292,7 @@ void Init(const std::string &title, Vector2 scrnSize) {
 
   SetExitKey(KEY_NULL);
 }
+bool ShouldClose() { return WindowShouldClose() || !KeepRunning; }
 void Close() {
 
   CloseAudioDevice();
