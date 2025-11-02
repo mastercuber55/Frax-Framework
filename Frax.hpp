@@ -113,8 +113,7 @@ struct Rect {
 };
 
 // TODO: Add Touch Support
-void GuiMakeMoveableWindow(bool &Dragging, Vector2 &Anchor, float TitleBarWidth,
-                           float TitleBarHeight = 20.0f);
+void GuiMakeMoveableWindow(bool &Dragging, Rectangle &Anchor, float TitleBarHeight = 20.0f);
 
 //------------------------------------------------------------------------------------
 // Initialization And Closing Functions (Module: Core)
@@ -252,22 +251,22 @@ Vector2 Rect::GetCenter() { return {x + w / 2.0f, y + h / 2.0f}; }
 Rect::operator Vector2() const { return {this->x, this->y}; }
 Rect::operator Rectangle() const { return {x, y, w, h}; }
 
-void GuiMakeMoveableWindow(bool &Dragging, Vector2 &Anchor, float TitleBarWidth,
-                           float TitleBarHeight) {
+void GuiMakeMoveableWindow(bool &Dragging, Rectangle &Window, float TitleBarHeight) {
 
-  Rectangle TitleBar = {Anchor.x, Anchor.y, TitleBarWidth, TitleBarHeight};
+  Rectangle TitleBar = {Window.x, Window.y, Window.width, TitleBarHeight};
 
-  if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
-    if (CheckCollisionPointRec(GetMousePosition(), TitleBar)) {
-      Dragging = true;
-    }
-    if (Dragging) {
-      Vector2 delta = GetMouseDelta();
-      Anchor.x += delta.x;
-      Anchor.y += delta.y;
-    }
-  } else {
+  if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) &&
+      CheckCollisionPointRec(GetMousePosition(), TitleBar)) {
+    Dragging = true;
+  }
+
+  if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
     Dragging = false;
+
+  if (Dragging) {
+    Vector2 delta = GetMouseDelta();
+    Window.x += delta.x;
+    Window.y += delta.y;
   }
 }
 
