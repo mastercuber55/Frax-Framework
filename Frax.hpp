@@ -37,8 +37,6 @@
  *SOFTWARE.
  *
  ********************************************************************************************************************************************************/
-
-#include <any>
 #ifndef FRAX_FRAMEWORK
 #define FRAX_FRAMEWORK "2.0"
 
@@ -50,6 +48,7 @@
   }
 #endif
 
+#include <any>
 #include <memory>
 #include <raylib.h>
 #include <string>
@@ -111,9 +110,6 @@ struct Rect {
   // Utilities
   void Draw();
 };
-
-// TODO: Add Touch Support
-void GuiMakeMoveableWindow(bool &Dragging, Rectangle &Anchor, float TitleBarHeight = 20.0f);
 
 //------------------------------------------------------------------------------------
 // Initialization And Closing Functions (Module: Core)
@@ -250,25 +246,6 @@ void Rect::SetCenter(Vector2 cenpos) {
 Vector2 Rect::GetCenter() { return {x + w / 2.0f, y + h / 2.0f}; }
 Rect::operator Vector2() const { return {this->x, this->y}; }
 Rect::operator Rectangle() const { return {x, y, w, h}; }
-
-void GuiMakeMoveableWindow(bool &Dragging, Rectangle &Window, float TitleBarHeight) {
-
-  Rectangle TitleBar = {Window.x, Window.y, Window.width, TitleBarHeight};
-
-  if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) &&
-      CheckCollisionPointRec(GetMousePosition(), TitleBar)) {
-    Dragging = true;
-  }
-
-  if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
-    Dragging = false;
-
-  if (Dragging) {
-    Vector2 delta = GetMouseDelta();
-    Window.x += delta.x;
-    Window.y += delta.y;
-  }
-}
 
 void Init(const std::string &title, Vector2 scrnSize) {
 
