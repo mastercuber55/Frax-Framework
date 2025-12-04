@@ -71,7 +71,7 @@ struct Scene {
   virtual bool ShouldClose();
   virtual std::any Run();
   virtual void Close(std::any returnData);
-  virtual void Update(float dt);
+  virtual void Update(const float& dt);
   virtual void Draw();
 
   ~Scene();
@@ -158,7 +158,7 @@ std::unordered_map<size_t, std::weak_ptr<Texture>> Textures;
 //----------------------------------------------------------------------------------
 
 Scene::Scene() { KeepRunning = true; }
-void Scene::Update(float dt) { (void)dt; }
+void Scene::Update(const float& dt) { (void)dt; }
 void Scene::Draw() {}
 void Scene::Close(std::any returnData) {
   KeepRunning = false;
